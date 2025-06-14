@@ -1,0 +1,317 @@
+{
+  "name": "Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        80,
+        200
+      ],
+      "id": "e79871af-0489-4617-9f1f-f77c1c09591a",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "QZsZLrpuqJfzohud",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "\"test-session\""
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        200
+      ],
+      "id": "b9f1fedc-1b3a-4de7-9f4e-f21dd1a762cc",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        20,
+        0
+      ],
+      "id": "c3aa9fef-f5a7-4a5e-95f5-d05042bebe11",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "69e7b5ea-2f89-4bcb-be95-c6056e4f62a2",
+              "leftValue": "={{ JSON.parse($('Process Mining Agent').first().json.output).requires_jira_ticket === true }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        540,
+        0
+      ],
+      "id": "ff8dd48b-d329-4e35-9580-30abb3a6b763",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        740,
+        120
+      ],
+      "id": "4bb6619c-3e3f-4ac6-bc58-47b91c6c635c",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "QZsZLrpuqJfzohud",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "sample2"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        900,
+        120
+      ],
+      "id": "1d3fc7a8-8b21-4470-bcdf-3591af65278d",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a JIRA ticket creation system for process mining alerts.\n\nAVAILABLE TOOL:\n- create_ticket(title, description) - creates ticket with 2 fields\n\nTASK: Create JIRA ticket using data received from process mining analysis.\n\nALWAYS use create_ticket - do not respond with text!\n\nExample call:\ncreate_ticket(\"Alert Title\", \"Detailed description\")",
+        "options": {
+          "systemMessage": "Create JIRA ticket using this data:\n\nTitle: {{JSON.parse($('Process Mining Agent').first().json.output).ticket_details.title}}\nDescription: {{JSON.parse($('Process Mining Agent').first().json.output).reasoning}}\n\nUse function: create_ticket(\"{{JSON.parse($('Process Mining Agent').first().json.output).ticket_details.title}}\", \"{{JSON.parse($('Process Mining Agent').first().json.output).reasoning}}\")\n\nEXECUTE NOW!"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        720,
+        -160
+      ],
+      "id": "07f35717-40e1-4f43-bbe7-f8ca489e50fe",
+      "name": "JIRA Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze the credit process using these exact tool calls:\n\n1. get_basic_stats()\n2. analyze_performance({\"bottleneck_threshold\": 1.5, \"percentage_of_cases\": 1.0})\n\nExecute both tools in sequence and provide comprehensive JSON analysis according to the format specified in the system message.",
+        "options": {
+          "systemMessage": "You are an expert in process mining and credit process business analysis.\n\nAVAILABLE MCP TOOLS:\n1. get_basic_stats() - basic process statistics (call without parameters)\n2. analyze_performance - performance analysis (call with specific parameters)\n\nCRITICAL TOOL USAGE:\n- get_basic_stats: call without any parameters\n- analyze_performance: call with {\"bottleneck_threshold\": 1.5, \"percentage_of_cases\": 1.0}\n\nEXAMPLES OF CORRECT CALLS:\n- get_basic_stats()\n- analyze_performance({\"bottleneck_threshold\": 1.5, \"percentage_of_cases\": 1.0})\n\nNEVER call functions with empty parameters {}!\n\nANALYSIS ALGORITHM:\n1. Call get_basic_stats() first to understand overall process state\n2. Call analyze_performance({\"bottleneck_threshold\": 1.5, \"percentage_of_cases\": 1.0}) to identify bottlenecks\n3. Combine results from both analyses into comprehensive assessment\n\nESCALATION CRITERIA:\nFrom get_basic_stats:\n- Average case duration > 72 hours\n- High time variance (std > 50% of mean)\n- Anomalies in case numbers\n\nFrom analyze_performance:\n- Bottlenecks in critical activities\n- Long waiting times\n- Activities exceeding threshold\n\nRESPONSE in JSON:\n{\n  \"analysis_performed\": [\"get_basic_stats\", \"analyze_performance\"],\n  \"basic_stats_results\": {\n    \"avg_case_duration_hours\": number,\n    \"total_cases\": number,\n    \"process_health\": \"good|concerning|critical\"\n  },\n  \"performance_results\": {\n    \"bottlenecks_found\": number,\n    \"critical_activities\": [\"list of activities\"],\n    \"max_activity_duration\": number\n  },\n  \"combined_assessment\": {\n    \"overall_status\": \"healthy|at_risk|critical\",\n    \"primary_concerns\": [\"list of main issues\"],\n    \"impact_level\": \"low|medium|high|critical\"\n  },\n  \"requires_jira_ticket\": boolean,\n  \"ticket_details\": {\n    \"priority\": \"Medium|High|Critical\",\n    \"title\": \"Process Performance Alert - [main issue]\",\n    \"description\": \"Detailed description based on both analyses\",\n    \"affected_metrics\": {\n      \"avg_duration\": \"from basic_stats\",\n      \"bottleneck_activities\": \"from performance\",\n      \"cases_affected\": \"estimate\"\n    },\n    \"recommended_actions\": [\n      \"specific actions based on identified problems\"\n    ]\n  },\n  \"reasoning\": \"justification of decision based on results from both tools\"\n}\n\nREMEMBER: Use exact parameter format shown above!\n- get_basic_stats()\n- analyze_performance({\"bottleneck_threshold\": 1.5, \"percentage_of_cases\": 1.0})\n\nCRITICAL OUTPUT FORMAT:\n- Return ONLY valid JSON without any markdown formatting\n- NO ```json``` code blocks\n- NO backticks\n- NO additional text\n- Just pure JSON object starting with { and ending with }\n\nEXAMPLE CORRECT OUTPUT:\n{\"analysis_performed\": [\"get_basic_stats\"], \"requires_jira_ticket\": true, \"ticket_details\": {\"title\": \"Alert\"}}\n\nWRONG OUTPUT FORMATS (DO NOT USE):\n```json\n{\"analysis_performed\": [\"get_basic_stats\"]}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "id": "2b520e46-9a04-4987-98cc-6feaea5a9a8a",
+      "name": "Process Mining Agent"
+    },
+    {
+      "parameters": {
+        "sseEndpoint": "http://127.0.0.1:8000/sse   ",
+        "include": "selected",
+        "includeTools": [
+          "analyze_performance",
+          "get_basic_stats"
+        ]
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1,
+      "position": [
+        380,
+        200
+      ],
+      "id": "230b79c6-0774-4148-932b-69ebf0f01793",
+      "name": "MCP Client MCP4PM"
+    },
+    {
+      "parameters": {
+        "sseEndpoint": "http://127.0.0.1:8001/sse   ",
+        "include": "selected"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        120
+      ],
+      "id": "665150e8-dff9-4f44-9f59-78de8243946b",
+      "name": "MCP Client JIRA"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Process Mining Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Process Mining Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Process Mining Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "JIRA Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "JIRA Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "JIRA Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Mining Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client MCP4PM": {
+      "ai_tool": [
+        [
+          {
+            "node": "Process Mining Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client JIRA": {
+      "ai_tool": [
+        [
+          {
+            "node": "JIRA Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2151214d-8d02-4050-b421-28a00fd82b14",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "02437dbb075989ddac3de785d4b31427d831b9026118009e198b20783ea3ab94"
+  },
+  "id": "V9SVmSfpohW7X1Bq",
+  "tags": []
+}

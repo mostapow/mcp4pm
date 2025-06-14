@@ -1,0 +1,14 @@
+{
+    "mcpServers": {
+    "pm4py": {
+      "command": "cmd.exe",
+      "args": ["/c", "<SCIEZKA_DO_FOLDERU>/mcp4pm/run_pm4py.bat"],
+      "shell": true
+    },
+	"sql": {
+      "command": "cmd.exe",
+      "args": ["/c", "<SCIEZKA_DO_FOLDERU>/mcp4pm/run_sql.bat"],
+      "shell": true
+     }
+   }
+}
